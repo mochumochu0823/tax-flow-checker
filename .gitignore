@@ -1,0 +1,9 @@
+# macOSが自動生成する隠しファイル
+.DS_Store
+
+# VS Codeのワークスペース設定など（必要に応じて）
+.vscode/
+
+# Firebaseの一時ログなど
+firebase-debug.log
+.firebase/
