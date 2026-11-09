@@ -326,7 +326,14 @@
 
             // 扶養確認を経由した着地点（株の源泉徴収ありや、給与のみで申告不要なケースなど）
             'result_fuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（親の扶養内）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告の義務はありません。<br><strong>■ 家族の扶養への影響:</strong> 親の税法上の扶養・健康保険の扶養の範囲内に収まっているため安心です。<br><strong>■ 住民税について:</strong> アルバイト等の給与や非課税枠内であれば、勤務先からの報告書が自動で市区町村にいくため個人の手続きは不要です。" },
-            'result_nofuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（単身・扶養なし）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告は不要です。<br><strong>■ 住民税について:</strong> 非課税枠内であれば住民税はかかりません。特段のお手続きも不要です。" }
+            'result_nofuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（単身・扶養なし）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告は不要です。<br><strong>■ 住民税について:</strong> 非課税枠内であれば住民税はかかりません。特段のお手続きも不要です。" },
+            'result_biz_auto_dynamic': {
+                isResult: true,
+                needHelp: true,
+                helpType: "biz_side_job",
+                title: "【判定：事業所得が48万円を超えるため確定申告が【必要】です】",
+                desc: "<strong>■ 確定申告の要否:</strong> 必要（所得が48万円を超えているため）<br><strong>■ 住民税について:</strong> 確定申告の内容が市区町村へ連動します。<br><strong>■ 家族の扶養への影響:</strong> 所得額によっては扶養から外れる可能性があります。"
+            }
         };
 
         window.selectOption = function(nextStepKey, selectedLabel = "") {
@@ -334,7 +341,6 @@
                 userAnswers[currentActiveStep] = { label: selectedLabel, next: nextStepKey };
             }
             historyStack.push(currentActiveStep);
-            saveToCloud();
             showStep(nextStepKey, true);
         }
 
@@ -486,15 +492,27 @@
         window.goBack = function() {
             if (historyStack.length > 0) {
                 const prevStep = historyStack.pop();
-                saveToCloud();
                 showStep(prevStep, true);
             }
         }
 
         window.jumpToStep = function(stepKey) {
-            historyStack.push(currentActiveStep);
-            showStep(stepKey, true);
-        }
+    const stepIndex = historyStack.indexOf(stepKey);
+
+    if (stepIndex !== -1) {
+        const laterSteps = historyStack.slice(stepIndex + 1);
+
+        laterSteps.forEach(key => {
+            delete userAnswers[key];
+        });
+
+        historyStack = historyStack.slice(0, stepIndex);
+    }
+
+    delete userAnswers[stepKey];
+
+    showStep(stepKey, true);
+}
 
         window.submitCustomInput = function() {
             const val = document.getElementById('custom-number-input').value;
@@ -530,7 +548,6 @@
 
             userAnswers[currentActiveStep] = { label: labelStr, next: nextKey };
             historyStack.push(currentActiveStep);
-            saveToCloud();
             showStep(nextKey, true);
         }
 
@@ -551,13 +568,6 @@
             if (incomeVal !== "" || expenseVal !== "") {
                 if (profit > 480000) {
                     nextKey = 'result_biz_auto_dynamic';
-                    quizTree['result_biz_auto_dynamic'] = { 
-                        isResult: true, 
-                        needHelp: true,
-                        helpType: "biz_side_job",
-                        title: `【判定：${bizType === 'blue' ? '青色' : '白色'}申告で確定申告が【必要】です】`, 
-                        desc: `<strong>■ 確定申告の要否:</strong> 必要（所得が48万円超）<br><strong>■ 住民税について:</strong> 確定申告に自動連動します。<br><strong>■ 家族の扶養への影響:</strong> 基礎控除を超えるため親の税法上の扶養から外れます。` 
-                    };
                 } else {
                     nextKey = 'q_fuyo_check_root';
                 }
@@ -565,7 +575,6 @@
 
             userAnswers[currentActiveStep] = { label: `事業入力（所得: ${profit.toLocaleString()}円）`, next: nextKey };
             historyStack.push(currentActiveStep);
-            saveToCloud();
             showStep(nextKey, true);
         }
 
