@@ -26,9 +26,16 @@
         <div id="quiz-container">
             <div id="question-text" class="text-lg font-medium mb-6">読み込み中...</div>
             
-            <!-- ① 収入・経費などの自由入力フィールド（事業・業務委託用） -->
-            <div id="biz-input-container" class="mb-6 hidden space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <p class="text-xs text-slate-500 font-medium">売上と経費を入力すると、基礎控除（令和8年基準）と比較して自動判定します（未入力でも次へ進めます）</p>
+            <!-- ① 事業・業務委託用の入力フィールド -->
+            <div id="biz-input-container" class="mb-6 hidden space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs text-slate-500 font-medium">売上・経費、および青色申告の状況を入力すると、自動で税金と申告方法を判定します。</p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">税務署に「開業届」や「青色申告承認申請書」を出していますか？</label>
+                    <select id="biz-type-select" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white">
+                        <option value="blue">出している（青色申告をしている）</option>
+                        <option value="white">出していない（白色申告、またはわからない）</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">年間売上・収入（円）</label>
                     <input type="number" id="biz-income-input" placeholder="例: 1200000" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white">
@@ -50,6 +57,20 @@
                 <p class="text-xs text-slate-400 mt-1">※空欄のままでも進めます</p>
             </div>
 
+            <!-- ③ 副業所得（20万円判定）用の自由入力フィールド -->
+            <div id="side-biz-input-container" class="mb-6 hidden space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs text-slate-500 font-medium">副業の年間売上と経費を入力すると、所得（利益）を自動計算して20万円超か判定します（未入力でも下のボタンで進めます）</p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">副業の年間売上（円）</label>
+                    <input type="number" id="side-income-input" placeholder="例: 350000" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">副業の年間経費（円）</label>
+                    <input type="number" id="side-expense-input" placeholder="例: 50000" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white">
+                </div>
+                <button onclick="submitSideBizInputs()" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">この金額で判定して次へ</button>
+            </div>
+
             <!-- 選択肢ボタンコンテナ -->
             <div id="options-container" class="space-y-3">
                 <!-- 動的にボタンが生成されます -->
@@ -65,6 +86,19 @@
         <div id="result-container" class="mt-8 p-4 bg-indigo-50 rounded-xl border border-indigo-100 hidden">
             <h2 class="text-sm font-bold text-indigo-700 uppercase tracking-wider mb-1">診断結果・アドバイス</h2>
             <div id="result-content" class="text-slate-700 text-sm leading-relaxed"></div>
+            
+            <!-- 回答内容の確認＆修正エリア -->
+            <div id="summary-section" class="mt-4 pt-4 border-t border-indigo-200">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2">📋 あなたの回答内容（クリックして修正できます）</h3>
+                <div id="answer-summary-list" class="space-y-1.5 text-xs text-slate-700 mb-4"></div>
+            </div>
+
+            <!-- サポート・アクションセクション -->
+            <div id="support-section" class="mt-4 pt-4 border-t border-indigo-200 hidden">
+                <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2">💡 この後の進め方・やることチェックリスト</h3>
+                <ul id="support-checklist" class="space-y-2 text-xs text-slate-700 mb-4"></ul>
+                <div id="support-action-btn" class="space-y-2"></div>
+            </div>
         </div>
     </div>
 
@@ -74,16 +108,13 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ==========================================
-        // TODO: ご自身のFirebaseコンフィグに書き換えてください
-        // ==========================================
         const firebaseConfig = {
-        apiKey: "AIzaSyDduIy-yScms9PIhzYL_xELUENCtxhJLgo",
-        authDomain: "kakueisinnkoku.firebaseapp.com",
-        projectId: "kakueisinnkoku",
-        storageBucket: "kakueisinnkoku.firebasestorage.app",
-        messagingSenderId: "816689506261",
-        appId: "1:816689506261:web:1b4802d9345ba83e97bf5c"
+            apiKey: "AIzaSyDduIy-yScms9PIhzYL_xELUENCtxhJLgo",
+            authDomain: "kakueisinnkoku.firebaseapp.com",
+            projectId: "kakueisinnkoku",
+            storageBucket: "kakueisinnkoku.firebasestorage.app",
+            messagingSenderId: "816689506261",
+            appId: "1:816689506261:web:1b4802d9345ba83e97bf5c"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -92,9 +123,8 @@
 
         let currentUserUid = null;
         let userAnswers = {};
-        let historyStack = []; // 戻る機能のための履歴スタック
+        let historyStack = [];
 
-        // 匿名認証
         signInAnonymously(auth)
             .then((userCredential) => {
                 currentUserUid = userCredential.user.uid;
@@ -105,15 +135,17 @@
             .catch((error) => {
                 console.error("認証エラー:", error);
                 document.getElementById('auth-status').innerText = "オフラインモード";
+                showStep('q1', false);
             });
 
-        async function saveToCloud(key, value) {
-            userAnswers[key] = value;
+        async function saveToCloud() {
             if (!currentUserUid) return;
             try {
                 const docRef = doc(db, "tax_diagnosis", currentUserUid);
                 await setDoc(docRef, {
                     answers: userAnswers,
+                    history: historyStack,
+                    currentStep: currentActiveStep,
                     updatedAt: new Date()
                 }, { merge: true });
             } catch (e) {
@@ -127,47 +159,44 @@
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.answers && data.answers.currentStep) {
-                        userAnswers = data.answers;
-                        if(data.answers.history) {
-                            historyStack = data.answers.history;
-                        }
+                    if (data.answers) userAnswers = data.answers;
+                    if (data.history) historyStack = data.history;
+                    if (data.currentStep) {
+                        currentActiveStep = data.currentStep;
                     }
                 }
             } catch (e) {
                 console.error("ロード失敗:", e);
             }
-            showStep(userAnswers.currentStep || 'q1', false);
+            showStep(currentActiveStep || 'q1', false);
         }
 
-        // ==========================================
-        // 質問ツリー定義
-        // ==========================================
+        // 質問ツリー定義（すべてのルートで最後に必ず共通の扶養確認へ流れるように設定）
         const quizTree = {
             'q1': {
                 text: "Q1. あなたの主な収入はどれですか？",
                 options: [
-                    { label: "① 収入なし", next: "q_none_1" },
+                    { label: "① 収入なし", next: "q_fuyo_check_root" },
                     { label: "② 主に給与 (アルバイト・正社員など)", next: "q_salary_1" },
                     { label: "③ 主に公的年金", next: "q_pension_1" },
                     { label: "④ 主に営業・農業・不動産・業務委託（フリーランス）", next: "q_biz_input_step" }
                 ]
             },
 
-            // --- ① 収入なし ---
-            'q_none_1': {
-                text: "市内の親族の扶養に入っていますか？",
+            // 共通の扶養確認ステップ
+            'q_fuyo_check_root': {
+                text: "現在、親や家族の「扶養（税金の扶養・健康保険の扶養）」に入っていますか？",
                 options: [
-                    { label: "はい", next: "result_D_fuyo" },
-                    { label: "いいえ", next: "result_C" }
+                    { label: "はい（親の扶養に入っている）", next: "result_fuyo_general" },
+                    { label: "いいえ（入っていない・自分ひとりの立場）", next: "result_nofuyo_general" }
                 ]
             },
 
-            // --- ② 主に給与 ---
+            // --- ② 主に給与ルート ---
             'q_salary_1': {
                 text: "給与の年間収入が2,000万円を超えていますか？",
                 options: [
-                    { label: "はい", next: "result_A" },
+                    { label: "はい", next: "result_A_over20m" },
                     { label: "いいえ", next: "q_salary_2" }
                 ]
             },
@@ -196,17 +225,19 @@
             },
 
             'q_salary_4_biz': {
-                text: "副業（業務委託）の「年間所得（収入から経費を引いた額）」が 20万円 を超えていますか？",
+                text: "副業（業務委託）の年間所得（収入から経費を引いた額）が 20万円 を超えていますか？",
+                isSideBizInput: true,
                 options: [
                     { label: "はい（20万円超 → 確定申告が必要）", next: "result_A_side_biz" },
-                    { label: "いいえ（20万円以下 → 所得税は不要ですが住民税申告に注意）", next: "result_B_resident_only" }
+                    { label: "いいえ（20万円以下 → 所得税は不要ですが住民税申告に注意）", next: "q_fuyo_check_root" }
                 ]
             },
 
+            // 株の取引：特定口座（源泉徴収あり）を選んだ場合も、ここに立ち寄ってから結果へ進むよう修正
             'q_stock_check': {
                 text: "株の取引をしている証券口座の種類や状況は？",
                 options: [
-                    { label: "特定口座（源泉徴収あり）である", next: "result_stock_with_tax" },
+                    { label: "特定口座（源泉徴収あり）である", next: "q_fuyo_check_root" },
                     { label: "特定口座（源泉徴収なし）または一般口座である", next: "result_A" },
                     { label: "損益通算や損失の繰越控除、配当控除を受けたい", next: "result_A_stock_refund" }
                 ]
@@ -216,7 +247,7 @@
                 text: "給与所得以外の各種所得の合計が 20万円 を超えていますか？",
                 options: [
                     { label: "はい", next: "result_A" },
-                    { label: "いいえ", next: "result_B_resident_only" }
+                    { label: "いいえ", next: "q_fuyo_check_root" }
                 ]
             },
 
@@ -224,23 +255,23 @@
                 text: "あなたは現在、学生（勤労学生控除の対象になる立場）ですか？",
                 options: [
                     { label: "はい（学生です）", next: "q_student_amount" },
-                    { label: "いいえ（学生ではありません）", next: "result_no_tax_need" }
+                    { label: "いいえ（学生ではありません）", next: "q_fuyo_check_root" }
                 ]
             },
 
             'q_student_amount': {
-                text: "あなたの現在の「年間給与収入」はおよそいくらですか？（金額を入力するか、下の目安を選んでください）",
+                text: "あなたの現在の年間給与収入はおよそいくらですか？",
                 inputType: "annualIncome",
                 inputLabel: "年間給与収入（円）の入力",
                 options: [
-                    { label: "110万円以下", next: "result_stu_low" },
-                    { label: "110万〜134万円", next: "result_stu_mid1" },
-                    { label: "134万〜163万円（※R8改正の学生控除上限内）", next: "result_stu_mid2" },
+                    { label: "110万円以下", next: "q_fuyo_check_root" },
+                    { label: "110万〜134万円", next: "q_fuyo_check_root" },
+                    { label: "134万〜163万円（※R8改正の学生控除上限内）", next: "q_fuyo_check_root" },
                     { label: "163万円超（扶養や健康保険に注意）", next: "result_stu_high" }
                 ]
             },
 
-            // --- ③ 主に公的年金 ---
+            // --- ③ 主に公的年金ルート ---
             'q_pension_1': {
                 text: "年金収入が400万円を超えていますか？",
                 options: [
@@ -267,46 +298,43 @@
                 options: [
                     { label: "65歳以上で、年金収入が148万円以下", next: "result_D" },
                     { label: "65歳未満で、年金収入が98万円以下", next: "result_D" },
-                    { label: "上記以外（基準を超える）", next: "result_B_or_A" }
+                    { label: "上記以外（基準を超える）", next: "q_fuyo_check_root" }
                 ]
             },
 
-            // --- ④ 主に営業・農業・不動産・業務委託（自由入力ステップ） ---
             'q_biz_input_step': {
-                text: "④ 事業・業務委託の収入と経費を入力してください（未入力でも下のボタンから進めます）",
-                isBizInput: true, // 収入・経費の入力ボックスを表示するフラグ
+                text: "④ 事業・業務委託の売上や経費を入力してください（未入力でも進めます）",
+                isBizInput: true,
                 options: [
-                    { label: "金額を入力せずに進む場合はこちら", next: "result_biz_default" }
+                    { label: "金額を入力せずに進む場合はこちら", next: "q_fuyo_check_root" }
                 ]
             },
 
             // --- 結果ノード ---
-            'result_A': { isResult: true, title: "【結果 A】所得税の確定申告が必要です", desc: "給与が2000万超、または副業所得が20万円を超えるなど、原則として税務署への確定申告が必要です。" },
-            'result_B': { isResult: true, title: "【結果 B】住民税の申告が必要な場合があります", desc: "所得税の確定申告が不要な金額（20万円以下など）であっても、住民税には20万円以下の免除ルールがないため市区町村への申告が必要になる場合があります。" },
-            'result_A_or_B': { isResult: true, title: "【結果 A or B】申告の確認が必要です", desc: "年金からの天引き状況や各種所得額によって、確定申告または住民税の申告を行います。" },
-            'result_C': { isResult: true, title: "【結果 C】税金の申告が必要になる場合があります", desc: "ご自身の収入や状況に合わせて、市区町村や税務署の窓口で確認しましょう。" },
-            'result_D_fuyo': { isResult: true, title: "【結果 D】控除の追加や扶養の確認", desc: "親族の扶養に入りながら、ご自身の控除（勤労学生控除など）が追加できるか確認してみましょう。" },
-            'result_D': { isResult: true, title: "【結果 D】控除の追加が使える可能性があります", desc: "各種控除の追加適用を受けられる要件に該当していないか確認しましょう。" },
+            'result_A': { isResult: true, needHelp: true, helpType: "general_tax_return", title: "【判定：確定申告が【必要】です】", desc: "<strong>■ 確定申告の要否:</strong> 必要（所得税の申告を行います）<br><strong>■ 住民税について:</strong> 確定申告のデータが自動で市区町村に連動するため、別途の住民税申告は原則不要です。" },
+            'result_A_over20m': { isResult: true, needHelp: true, helpType: "general_tax_return", title: "【判定：確定申告が【必要】です（給与2,000万円超）】", desc: "<strong>■ 確定申告の要否:</strong> 給与収入が2,000万円を超えるため、必ず確定申告が必要です。" },
+            'result_B': { isResult: true, title: "【判定：住民税の申告に注意】", desc: "<strong>■ 確定申告の要否:</strong> 所得税の確定申告は原則不要です。<br><strong>■ 住民税について:</strong> 市区町村窓口で住民税の申告が必要な場合があります。" },
+            'result_A_or_B': { isResult: true, title: "【判定：申告の確認が必要です】", desc: "<strong>■ 確定申告の要否:</strong> 状況により確定申告または住民税申告が必要です。" },
+            'result_C': { isResult: true, title: "【判定：税務署や役場での確認を推奨】", desc: "<strong>■ 確定申告の要否:</strong> 税務署や役場へご確認ください。" },
+            'result_D_fuyo': { isResult: true, title: "【判定：扶養内・申告不要の目安】", desc: "<strong>■ 確定申告の要否:</strong> 不要です。" },
+            'result_D': { isResult: true, title: "【判定：控除の追加が使える可能性】", desc: "<strong>■ 確定申告の要否:</strong> 控除追加の申告で還付を受けられる場合があります。" },
             
-            'result_A_side_biz': { isResult: true, title: "【副業・業務委託：所得20万円超】", desc: "所得税の確定申告が必要です。また、住民税の申告も自動的に連動します。経費の領収書を整理しておきましょう。" },
-            'result_B_resident_only': { isResult: true, title: "【副業・業務委託：所得20万円以下】", desc: "所得税の確定申告は原則不要ですが、**住民税は申告が必要**です。" },
-            'result_stock_with_tax': { isResult: true, title: "【株の利益：特定口座（源泉徴収あり）】", desc: "証券会社が納税を完了しているため、原則として**確定申告は不要**です。" },
-            'result_A_stock_refund': { isResult: true, title: "【株の利益：還付や損益通算のための申告】", desc: "確定申告をすることで、損失の繰越控除や還付を受けられる可能性があります（要確定申告）。" },
+            'result_A_side_biz': { isResult: true, needHelp: true, helpType: "biz_side_job", title: "【判定：確定申告が【必要】です（副業・業務委託）】", desc: "<strong>■ 確定申告の要否:</strong> 必要（副業の所得が20万円を超えているため）<br><strong>■ 住民税について:</strong> 確定申告に連動します。<br><strong>■ 家族の扶養への影響:</strong> 利益が大きいため親の扶養（税法上・健康保険）から外れる可能性が高いです。" },
+            'result_A_stock_refund': { isResult: true, needHelp: true, helpType: "stock_refund", title: "【判定：還付・損失繰越のための申告が【必要】です】", desc: "<strong>■ 確定申告の要否:</strong> 必要（損益通算や還付を受けるため）" },
             
-            'result_biz_default': { isResult: true, title: "【事業・業務委託の判定結果】", desc: "売上から経費を引いた「所得」が基礎控除額（48万円等）を超える場合は確定申告が必要です。赤字や控除以下の場合は住民税の申告等を検討しましょう。" },
-            'result_biz_auto': { isResult: true, title: "【事業・業務委託：自動判定結果】", desc: "ご入力いただいた売上と経費をもとに判定しました。" },
+            'result_stu_high': { isResult: true, title: "【判定：確認が必要なラインです】", desc: "<strong>■ 確定申告の要否:</strong> 収入状況により確認が必要です。<br><strong>■ 家族の扶養・住民税について:</strong> 基準を超えるため親の扶養から外れる可能性があります。" },
 
-            'result_no_tax_need': { isResult: true, title: "【判定：申告・手続きの必要性なし（目安）】", desc: "年末調整が正しく行われており、他に所得がなければ、追加の確定申告は原則不要です。" },
-
-            'result_stu_low': { isResult: true, title: "【学生・給与 110万円以下】", desc: "住民税の非課税ライン等に収まる範囲です。" },
-            'result_stu_mid1': { isResult: true, title: "【学生・給与 110万〜134万円】", desc: "住民税の控除対象となるゾーンです。勤労学生控除の適用を検討しましょう。" },
-            'result_stu_mid2': { isResult: true, title: "【学生・給与 134万〜163万円】", desc: "勤労学生控除のメリットをしっかり受けられるゾーンです。JASSO奨学金の支援区分判定に影響する場合があるため要チェックです。" },
-            'result_stu_high': { isResult: true, title: "【学生・給与 163万円以上】", desc: "163万円の目安や、親の健康保険・税法上の扶養基準が変わるラインです。" }
+            // 扶養確認を経由した着地点（株の源泉徴収ありや、給与のみで申告不要なケースなど）
+            'result_fuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（親の扶養内）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告の義務はありません。<br><strong>■ 家族の扶養への影響:</strong> 親の税法上の扶養・健康保険の扶養の範囲内に収まっているため安心です。<br><strong>■ 住民税について:</strong> アルバイト等の給与や非課税枠内であれば、勤務先からの報告書が自動で市区町村にいくため個人の手続きは不要です。" },
+            'result_nofuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（単身・扶養なし）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告は不要です。<br><strong>■ 住民税について:</strong> 非課税枠内であれば住民税はかかりません。特段のお手続きも不要です。" }
         };
 
-        // 画面切り替え（履歴をスタックに積む）
-        window.selectOption = function(nextStepKey) {
+        window.selectOption = function(nextStepKey, selectedLabel = "") {
+            if (selectedLabel) {
+                userAnswers[currentActiveStep] = { label: selectedLabel, next: nextStepKey };
+            }
             historyStack.push(currentActiveStep);
+            saveToCloud();
             showStep(nextStepKey, true);
         }
 
@@ -315,8 +343,7 @@
         function showStep(stepKey, saveHistory = true) {
             currentActiveStep = stepKey;
             if (saveHistory) {
-                saveToCloud('currentStep', stepKey);
-                saveToCloud('history', historyStack);
+                saveToCloud();
             }
 
             const step = quizTree[stepKey] || quizTree['q1'];
@@ -324,12 +351,17 @@
             const optionsEl = document.getElementById('options-container');
             const inputContainer = document.getElementById('input-container');
             const bizInputContainer = document.getElementById('biz-input-container');
+            const sideBizInputContainer = document.getElementById('side-biz-input-container');
             const inputLabel = document.getElementById('input-label');
             const resultContainer = document.getElementById('result-container');
             const resultContent = document.getElementById('result-content');
+            const summarySection = document.getElementById('summary-section');
+            const answerSummaryList = document.getElementById('answer-summary-list');
+            const supportSection = document.getElementById('support-section');
+            const supportChecklist = document.getElementById('support-checklist');
+            const supportActionBtn = document.getElementById('support-action-btn');
             const backBtn = document.getElementById('back-btn');
 
-            // 戻るボタンの表示・非表示切替
             if (historyStack.length > 0) {
                 backBtn.classList.remove('hidden');
             } else {
@@ -339,10 +371,12 @@
             optionsEl.innerHTML = '';
             inputContainer.classList.add('hidden');
             bizInputContainer.classList.add('hidden');
+            sideBizInputContainer.classList.add('hidden');
 
             if (step.isResult) {
                 questionEl.innerText = "診断が完了しました！";
                 resultContainer.classList.remove('hidden');
+                summarySection.classList.remove('hidden');
                 
                 let extraMsg = "";
                 if (userAnswers.userAnnualIncome) {
@@ -350,21 +384,78 @@
                 }
                 if (userAnswers.bizIncome !== undefined && userAnswers.bizExpense !== undefined) {
                     const profit = userAnswers.bizIncome - userAnswers.bizExpense;
-                    extraMsg += `<p class="mt-2 text-xs text-indigo-600 font-semibold">※入力された事業所得: 売上 ${Number(userAnswers.bizIncome).toLocaleString()}円 - 経費 ${Number(userAnswers.bizExpense).toLocaleString()}円 ＝ 所得 ${profit.toLocaleString()}円</p>`;
+                    const taxTypeLabel = userAnswers.bizType === 'blue' ? '青色申告' : '白色申告';
+                    extraMsg += `<p class="mt-2 text-xs text-indigo-600 font-semibold">※申告方式: ${taxTypeLabel} / 売上 ${Number(userAnswers.bizIncome).toLocaleString()}円 - 経費 ${Number(userAnswers.bizExpense).toLocaleString()}円 ＝ 所得 ${profit.toLocaleString()}円</p>`;
                 }
-                resultContent.innerHTML = `<strong class="text-base text-indigo-900 block mb-1">${step.title}</strong>${step.desc}${extraMsg}`;
+                if (userAnswers.sideIncome !== undefined && userAnswers.sideExpense !== undefined) {
+                    const profit = userAnswers.sideIncome - userAnswers.sideExpense;
+                    extraMsg += `<p class="mt-2 text-xs text-indigo-600 font-semibold">※副業所得: 売上 ${Number(userAnswers.sideIncome).toLocaleString()}円 - 経費 ${Number(userAnswers.sideExpense).toLocaleString()}円 ＝ 所得 ${profit.toLocaleString()}円</p>`;
+                }
+                resultContent.innerHTML = `<strong class="text-base text-indigo-900 block mb-2">${step.title}</strong><p class="mb-2 leading-relaxed">${step.desc}</p>${extraMsg}`;
+
+                answerSummaryList.innerHTML = "";
+                for (let [stepKey, data] of Object.entries(userAnswers)) {
+                    if (stepKey === 'currentStep' || stepKey === 'history') continue;
+                    const qObj = quizTree[stepKey];
+                    if (qObj && qObj.text) {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = "flex justify-between items-center bg-white p-2 rounded border border-indigo-100 shadow-xs";
+                        itemDiv.innerHTML = `
+                            <span class="truncate pr-2 text-slate-600"><strong>Q:</strong> ${qObj.text.substring(0, 25)}... → <span class="text-indigo-600 font-medium">${data.label}</span></span>
+                            <button onclick="jumpToStep('${stepKey}')" class="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded transition shrink-0">修正する</button>
+                        `;
+                        answerSummaryList.appendChild(itemDiv);
+                    }
+                }
+
+                if (step.needHelp) {
+                    supportSection.classList.remove('hidden');
+                    supportChecklist.innerHTML = "";
+                    supportActionBtn.innerHTML = "";
+
+                    let checklistItems = [
+                        "① 源泉徴収票や売上・経費の記録をまとめる",
+                        "② マイナンバーカードを準備する",
+                        "③ 国税庁の「確定申告書作成コーナー」へアクセスする",
+                        "④ 画面に従って入力し、送信または提出する"
+                    ];
+
+                    checklistItems.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = "flex items-start gap-1.5";
+                        li.innerHTML = `<span class="text-indigo-600 font-bold">✓</span> ${item}`;
+                        supportChecklist.appendChild(li);
+                    });
+
+                    const linkBtn = document.createElement('a');
+                    linkBtn.href = "https://www.keisan.nta.go.jp/kyoutsu/ky/sm/top#bstop";
+                    linkBtn.target = "_blank";
+                    linkBtn.className = "block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg text-xs font-bold transition shadow-sm";
+                    linkBtn.innerText = "🌐 国税庁 確定申告書作成コーナーを開く (外部サイト)";
+                    supportActionBtn.appendChild(linkBtn);
+                } else {
+                    supportSection.classList.add('hidden');
+                }
+
             } else {
                 resultContainer.classList.add('hidden');
+                summarySection.classList.add('hidden');
+                supportSection.classList.add('hidden');
                 questionEl.innerText = step.text;
 
-                // 事業・業務委託の収入・経費入力ステップの場合
                 if (step.isBizInput) {
                     bizInputContainer.classList.remove('hidden');
                     if (userAnswers.bizIncome !== undefined) document.getElementById('biz-income-input').value = userAnswers.bizIncome;
                     if (userAnswers.bizExpense !== undefined) document.getElementById('biz-expense-input').value = userAnswers.bizExpense;
+                    if (userAnswers.bizType) document.getElementById('biz-type-select').value = userAnswers.bizType;
                 }
 
-                // 学生などの自由入力ステップの場合
+                if (step.isSideBizInput) {
+                    sideBizInputContainer.classList.remove('hidden');
+                    if (userAnswers.sideIncome !== undefined) document.getElementById('side-income-input').value = userAnswers.sideIncome;
+                    if (userAnswers.sideExpense !== undefined) document.getElementById('side-expense-input').value = userAnswers.sideExpense;
+                }
+
                 if (step.inputType) {
                     inputContainer.classList.remove('hidden');
                     inputLabel.innerText = step.inputLabel;
@@ -373,34 +464,78 @@
                     }
                 }
 
+                const prevAnswer = userAnswers[stepKey];
                 step.options.forEach(opt => {
                     const btn = document.createElement('button');
-                    btn.className = "w-full text-left p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition font-medium text-slate-700 shadow-sm";
-                    btn.innerText = opt.label;
-                    btn.onclick = () => selectOption(opt.next);
+                    let isPreviouslySelected = prevAnswer && prevAnswer.next === opt.next;
+                    
+                    if (isPreviouslySelected) {
+                        btn.className = "w-full text-left p-4 rounded-xl border-2 border-indigo-300 bg-indigo-50/80 hover:border-indigo-500 transition font-medium text-indigo-900 shadow-sm relative";
+                        btn.innerHTML = `${opt.label} <span class="absolute right-4 text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">前回の回答</span>`;
+                    } else {
+                        btn.className = "w-full text-left p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition font-medium text-slate-700 shadow-sm";
+                        btn.innerText = opt.label;
+                    }
+
+                    btn.onclick = () => selectOption(opt.next, opt.label);
                     optionsEl.appendChild(btn);
                 });
             }
         }
 
-        // ひとつ前の質問に戻る関数
         window.goBack = function() {
             if (historyStack.length > 0) {
                 const prevStep = historyStack.pop();
+                saveToCloud();
                 showStep(prevStep, true);
             }
+        }
+
+        window.jumpToStep = function(stepKey) {
+            historyStack.push(currentActiveStep);
+            showStep(stepKey, true);
         }
 
         window.submitCustomInput = function() {
             const val = document.getElementById('custom-number-input').value;
             if (val) {
-                saveToCloud('userAnnualIncome', Number(val));
+                userAnswers['userAnnualIncome'] = Number(val);
             }
-            selectOption('result_stu_mid2');
+            selectOption('q_fuyo_check_root', `年間給与収入: ${Number(val).toLocaleString()}円`);
         }
 
-        // 事業・業務委託の自動判定送信
+        window.submitSideBizInputs = function() {
+            const incomeVal = document.getElementById('side-income-input').value;
+            const expenseVal = document.getElementById('side-expense-input').value;
+            
+            const income = incomeVal ? Number(incomeVal) : 0;
+            const expense = expenseVal ? Number(expenseVal) : 0;
+            const profit = income - expense;
+
+            userAnswers['sideIncome'] = income;
+            userAnswers['sideExpense'] = expense;
+
+            let nextKey = 'q_fuyo_check_root';
+            let labelStr = "金額未入力で進む";
+
+            if (incomeVal !== "" || expenseVal !== "") {
+                if (profit > 200000) {
+                    nextKey = 'result_A_side_biz';
+                    labelStr = `売上${income.toLocaleString()}円-経費${expense.toLocaleString()}円＝所得${profit.toLocaleString()}円（20万円超）`;
+                } else {
+                    nextKey = 'q_fuyo_check_root';
+                    labelStr = `売上${income.toLocaleString()}円-経費${expense.toLocaleString()}円＝所得${profit.toLocaleString()}円（20万円以下）`;
+                }
+            }
+
+            userAnswers[currentActiveStep] = { label: labelStr, next: nextKey };
+            historyStack.push(currentActiveStep);
+            saveToCloud();
+            showStep(nextKey, true);
+        }
+
         window.submitBizInputs = function() {
+            const bizType = document.getElementById('biz-type-select').value;
             const incomeVal = document.getElementById('biz-income-input').value;
             const expenseVal = document.getElementById('biz-expense-input').value;
             
@@ -408,40 +543,36 @@
             const expense = expenseVal ? Number(expenseVal) : 0;
             const profit = income - expense;
 
-            saveToCloud('bizIncome', income);
-            saveToCloud('bizExpense', expense);
+            userAnswers['bizType'] = bizType;
+            userAnswers['bizIncome'] = income;
+            userAnswers['bizExpense'] = expense;
 
-            // 基礎控除（今年基準で48万円超かどうかで自動判定）
-            let nextKey = 'result_biz_default';
+            let nextKey = 'q_fuyo_check_root';
             if (incomeVal !== "" || expenseVal !== "") {
                 if (profit > 480000) {
-                    // 所得が基礎控除48万円を超える場合
+                    nextKey = 'result_biz_auto_dynamic';
                     quizTree['result_biz_auto_dynamic'] = { 
                         isResult: true, 
-                        title: "【事業・業務委託：自動判定（所得48万円超）】", 
-                        desc: `計算された所得（${profit.toLocaleString()}円）が所得税の基礎控除額（48万円）を超えているため、原則として**確定申告が必要**です。` 
+                        needHelp: true,
+                        helpType: "biz_side_job",
+                        title: `【判定：${bizType === 'blue' ? '青色' : '白色'}申告で確定申告が【必要】です】`, 
+                        desc: `<strong>■ 確定申告の要否:</strong> 必要（所得が48万円超）<br><strong>■ 住民税について:</strong> 確定申告に自動連動します。<br><strong>■ 家族の扶養への影響:</strong> 基礎控除を超えるため親の税法上の扶養から外れます。` 
                     };
                 } else {
-                    quizTree['result_biz_auto_dynamic'] = { 
-                        isResult: true, 
-                        title: "【事業・業務委託：自動判定（所得48万円以下・赤字等）】", 
-                        desc: `計算された所得（${profit.toLocaleString()}円）が基礎控除額以下、または赤字のため所得税の確定申告は原則不要ですが、住民税の申告等の手続きが必要な場合があります。` 
-                    };
+                    nextKey = 'q_fuyo_check_root';
                 }
-                nextKey = 'result_biz_auto_dynamic';
             }
 
-            selectOption(nextKey);
+            userAnswers[currentActiveStep] = { label: `事業入力（所得: ${profit.toLocaleString()}円）`, next: nextKey };
+            historyStack.push(currentActiveStep);
+            saveToCloud();
+            showStep(nextKey, true);
         }
 
         window.resetQuiz = function() {
             userAnswers = {};
             historyStack = [];
-            saveToCloud('currentStep', 'q1');
-            saveToCloud('history', []);
-            saveToCloud('userAnnualIncome', null);
-            saveToCloud('bizIncome', null);
-            saveToCloud('bizExpense', null);
+            saveToCloud();
             showStep('q1', true);
         }
     </script>
