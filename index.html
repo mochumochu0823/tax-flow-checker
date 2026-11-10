@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>確定申告サクッとナビ</title>
+    <title>確定申告サクッとナビ（令和8年版）</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -14,6 +14,7 @@
         <div class="flex justify-between items-center mb-6 border-b pb-4">
             <div>
                 <h1 class="text-xl font-bold text-indigo-600">確定申告サクッとナビ</h1>
+                <p class="text-xs text-slate-400 mt-0.5">令和8年度（R8）税制改正対応版</p>
             </div>
             <div class="flex items-center gap-2">
                 <!-- 戻るボタン -->
@@ -28,7 +29,7 @@
             
             <!-- ① 事業・業務委託用の入力フィールド -->
             <div id="biz-input-container" class="mb-6 hidden space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <p class="text-xs text-slate-500 font-medium">売上・経費、および青色申告の状況を入力すると、自動で税金と申告方法を判定します。</p>
+                <p class="text-xs text-slate-500 font-medium">売上・経費、および青色申告の状況を入力すると、令和8年基準（基礎控除104万円）で自動判定します。</p>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">税務署に「開業届」や「青色申告承認申請書」を出していますか？</label>
                     <select id="biz-type-select" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white">
@@ -171,7 +172,7 @@
             showStep(currentActiveStep || 'q1', false);
         }
 
-        // 質問ツリー定義（すべてのルートで最後に必ず共通の扶養確認へ流れるように設定）
+        // 質問ツリー定義（令和8年版控除基準にアップデート）
         const quizTree = {
             'q1': {
                 text: "あなたの主な収入はどれですか？",
@@ -183,7 +184,6 @@
                 ]
             },
 
-            // 共通の扶養確認ステップ
             'q_fuyo_check_root': {
                 text: "現在、親や家族の「扶養（税金の扶養・健康保険の扶養）」に入っていますか？",
                 options: [
@@ -192,7 +192,6 @@
                 ]
             },
 
-            // --- ② 主に給与ルート ---
             'q_salary_1': {
                 text: "給与の年間収入が2,000万円を超えていますか？",
                 options: [
@@ -233,7 +232,6 @@
                 ]
             },
 
-            // 株の取引：特定口座（源泉徴収あり）を選んだ場合も、ここに立ち寄ってから結果へ進むよう修正
             'q_stock_check': {
                 text: "株の取引をしている証券口座の種類や状況は？",
                 options: [
@@ -264,14 +262,13 @@
                 inputType: "annualIncome",
                 inputLabel: "年間給与収入（円）の入力",
                 options: [
-                    { label: "110万円以下", next: "q_fuyo_check_root" },
-                    { label: "110万〜134万円", next: "q_fuyo_check_root" },
-                    { label: "134万〜163万円（※R8改正の学生控除上限内）", next: "q_fuyo_check_root" },
-                    { label: "163万円超（扶養や健康保険に注意）", next: "result_stu_high" }
+                    { label: "130万円以下", next: "q_fuyo_check_root" },
+                    { label: "130万〜178万円（※R8改正の所得税ゼロ上限内）", next: "q_fuyo_check_root" },
+                    { label: "178万〜205万円（勤労学生控除の適用範囲）", next: "q_fuyo_check_root" },
+                    { label: "205万円超（扶養や健康保険に注意）", next: "result_stu_high" }
                 ]
             },
 
-            // --- ③ 主に公的年金ルート ---
             'q_pension_1': {
                 text: "年金収入が400万円を超えていますか？",
                 options: [
@@ -324,15 +321,16 @@
             
             'result_stu_high': { isResult: true, title: "【判定：確認が必要なラインです】", desc: "<strong>■ 確定申告の要否:</strong> 収入状況により確認が必要です。<br><strong>■ 家族の扶養・住民税について:</strong> 基準を超えるため親の扶養から外れる可能性があります。" },
 
-            // 扶養確認を経由した着地点（株の源泉徴収ありや、給与のみで申告不要なケースなど）
             'result_fuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（親の扶養内）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告の義務はありません。<br><strong>■ 家族の扶養への影響:</strong> 親の税法上の扶養・健康保険の扶養の範囲内に収まっているため安心です。<br><strong>■ 住民税について:</strong> アルバイト等の給与や非課税枠内であれば、勤務先からの報告書が自動で市区町村にいくため個人の手続きは不要です。" },
             'result_nofuyo_general': { isResult: true, title: "【判定：確定申告の義務は原則【不要】（単身・扶養なし）】", desc: "<strong>■ 確定申告の要否:</strong> 基準内の収入であれば確定申告は不要です。<br><strong>■ 住民税について:</strong> 非課税枠内であれば住民税はかかりません。特段のお手続きも不要です。" },
+            
+            // 令和8年基準（基礎控除104万円）による自動判定結果ノード
             'result_biz_auto_dynamic': {
                 isResult: true,
                 needHelp: true,
                 helpType: "biz_side_job",
-                title: "【判定：事業所得が48万円を超えるため確定申告が【必要】です】",
-                desc: "<strong>■ 確定申告の要否:</strong> 必要（所得が48万円を超えているため）<br><strong>■ 住民税について:</strong> 確定申告の内容が市区町村へ連動します。<br><strong>■ 家族の扶養への影響:</strong> 所得額によっては扶養から外れる可能性があります。"
+                title: "【判定：事業所得が104万円を超えるため確定申告が【必要】です】",
+                desc: "<strong>■ 確定申告の要否:</strong> 必要（所得が令和8年基準の基礎控除104万円を超えているため）<br><strong>■ 住民税について:</strong> 確定申告の内容が市区町村へ連動します。<br><strong>■ 家族の扶養への影響:</strong> 所得額によっては扶養から外れる可能性があります。"
             }
         };
 
@@ -385,6 +383,38 @@
                 summarySection.classList.remove('hidden');
                 
                 let extraMsg = "";
+
+                // ========== 令和8年版・学生向けアドバイス（178万円壁・勤労学生控除対応） ==========
+                const isStudent = userAnswers['q_is_student'] && userAnswers['q_is_student'].label.includes("はい");
+                if (isStudent) {
+                    let studentAdvice = "";
+                    let income = userAnswers['userAnnualIncome'];
+
+                    if (income !== undefined) {
+                        if (income <= 1780000) {
+                            studentAdvice = `現在の給与収入（${income.toLocaleString()}円）は、令和8年基準の<strong>178万円以下（給与所得控除74万円 ＋ 基礎控除104万円）</strong>に収まっているため、所得税はかかりません！`;
+                        } else if (income <= 2050000) {
+                            studentAdvice = `収入が178万円を超えていますが、<strong>「勤労学生控除」</strong>を適用することで税負担を大きく軽減できる可能性があります。`;
+                        } else {
+                            studentAdvice = `給与収入が205万円を超えているため、勤労学生控除や親の扶養基準に影響が出る可能性が高くなります。`;
+                        }
+                    } else {
+                        const amountLabel = userAnswers['q_student_amount'] ? userAnswers['q_student_amount'].label : "";
+                        if (amountLabel.includes("130万円以下") || amountLabel.includes("130万〜178万円")) {
+                            studentAdvice = "給与収入が<strong>178万円以下（給与所得控除74万円 ＋ 基礎控除104万円）</strong>の範囲内であるため、所得税はかかりません。";
+                        } else if (amountLabel.includes("178万〜205万円")) {
+                            studentAdvice = "給与収入が178万円を超えていますが、<strong>勤労学生控除</strong>を活用することで税金を軽減できるメリットがあります。";
+                        } else {
+                            studentAdvice = "給与収入が205万円を超える場合、親の扶養や各種控除の条件を慎重に確認する必要があります。";
+                        }
+                    }
+
+                    extraMsg += `<div class="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs leading-relaxed">
+                        <strong class="text-emerald-900 block mb-1">🎓 令和8年版・学生の方へ（控除・178万円壁のアドバイス）</strong>
+                        ${studentAdvice}
+                    </div>`;
+                }
+
                 if (userAnswers.userAnnualIncome) {
                     extraMsg += `<p class="mt-2 text-xs text-indigo-600 font-semibold">※入力された年収: ${Number(userAnswers.userAnnualIncome).toLocaleString()}円</p>`;
                 }
@@ -497,22 +527,17 @@
         }
 
         window.jumpToStep = function(stepKey) {
-    const stepIndex = historyStack.indexOf(stepKey);
-
-    if (stepIndex !== -1) {
-        const laterSteps = historyStack.slice(stepIndex + 1);
-
-        laterSteps.forEach(key => {
-            delete userAnswers[key];
-        });
-
-        historyStack = historyStack.slice(0, stepIndex);
-    }
-
-    delete userAnswers[stepKey];
-
-    showStep(stepKey, true);
-}
+            const stepIndex = historyStack.indexOf(stepKey);
+            if (stepIndex !== -1) {
+                const laterSteps = historyStack.slice(stepIndex + 1);
+                laterSteps.forEach(key => {
+                    delete userAnswers[key];
+                });
+                historyStack = historyStack.slice(0, stepIndex);
+            }
+            delete userAnswers[stepKey];
+            showStep(stepKey, true);
+        }
 
         window.submitCustomInput = function() {
             const val = document.getElementById('custom-number-input').value;
@@ -566,7 +591,8 @@
 
             let nextKey = 'q_fuyo_check_root';
             if (incomeVal !== "" || expenseVal !== "") {
-                if (profit > 480000) {
+                // 令和8年基準の基礎控除（104万円）と比較して自動判定
+                if (profit > 1040000) {
                     nextKey = 'result_biz_auto_dynamic';
                 } else {
                     nextKey = 'q_fuyo_check_root';
