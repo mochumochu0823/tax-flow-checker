@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>確定申告・税金フロー診断</title>
+    <title>確定申告サクッとナビ</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -13,7 +13,7 @@
         <!-- ヘッダー -->
         <div class="flex justify-between items-center mb-6 border-b pb-4">
             <div>
-                <h1 class="text-xl font-bold text-indigo-600">確定申告フロー診断ツール</h1>
+                <h1 class="text-xl font-bold text-indigo-600">確定申告サクッとナビ</h1>
             </div>
             <div class="flex items-center gap-2">
                 <!-- 戻るボタン -->
@@ -174,12 +174,12 @@
         // 質問ツリー定義（すべてのルートで最後に必ず共通の扶養確認へ流れるように設定）
         const quizTree = {
             'q1': {
-                text: "Q1. あなたの主な収入はどれですか？",
+                text: "あなたの主な収入はどれですか？",
                 options: [
-                    { label: "① 収入なし", next: "q_fuyo_check_root" },
-                    { label: "② 主に給与 (アルバイト・正社員など)", next: "q_salary_1" },
-                    { label: "③ 主に公的年金", next: "q_pension_1" },
-                    { label: "④ 主に営業・農業・不動産・業務委託（フリーランス）", next: "q_biz_input_step" }
+                    { label: "収入なし", next: "q_fuyo_check_root" },
+                    { label: "主に給与 (アルバイト・正社員など)", next: "q_salary_1" },
+                    { label: "主に公的年金", next: "q_pension_1" },
+                    { label: "主に営業・農業・不動産・業務委託・フリーランス", next: "q_biz_input_step" }
                 ]
             },
 
@@ -252,7 +252,7 @@
             },
 
             'q_is_student': {
-                text: "あなたは現在、学生（勤労学生控除の対象になる立場）ですか？",
+                text: "あなたは現在、学生ですか？",
                 options: [
                     { label: "はい（学生です）", next: "q_student_amount" },
                     { label: "いいえ（学生ではありません）", next: "q_fuyo_check_root" }
@@ -303,7 +303,7 @@
             },
 
             'q_biz_input_step': {
-                text: "④ 事業・業務委託の売上や経費を入力してください（未入力でも進めます）",
+                text: "事業・業務委託の売上や経費を入力してください（未入力でも進めます）",
                 isBizInput: true,
                 options: [
                     { label: "金額を入力せずに進む場合はこちら", next: "q_fuyo_check_root" }
@@ -434,7 +434,7 @@
                     });
 
                     const linkBtn = document.createElement('a');
-                    linkBtn.href = "https://www.keisan.nta.go.jp/kyoutsu/ky/sm/top#bstop";
+                    linkBtn.href = "https://www.keisan.nta.go.jp/kyoutu/ky/sm/top_web#bsctrl";
                     linkBtn.target = "_blank";
                     linkBtn.className = "block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg text-xs font-bold transition shadow-sm";
                     linkBtn.innerText = "🌐 国税庁 確定申告書作成コーナーを開く (外部サイト)";
